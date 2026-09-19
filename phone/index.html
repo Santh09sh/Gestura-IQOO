@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="Gestura — Indian Sign Language recognition">
+    <title>Gestura</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container" id="app">
+
+        <!-- ═══════ SETUP VIEW ═══════ -->
+        <div id="setup-view">
+            <div class="app-header">
+                <h1 class="app-title">Gestura</h1>
+                <div class="status-dot" id="status-dot"></div>
+            </div>
+
+            <div class="setup-panel">
+                <div>
+                    <p class="setup-title">Welcome to Gestura</p>
+                    <p class="setup-description">
+                        Sign language recognition, right from your camera.
+                        Tap below to verify the server connection.
+                    </p>
+                </div>
+
+                <button class="btn btn-primary btn-full" id="btn-test-connection">
+                    Test connection
+                </button>
+
+                <div class="connection-result" id="connection-result">
+                    <span class="connection-result-title" id="connection-result-title"></span>
+                    <span class="connection-result-detail" id="connection-result-detail"></span>
+                </div>
+
+                <button class="btn btn-primary btn-full hidden" id="btn-start-app">
+                    Start Gestura
+                </button>
+            </div>
+        </div>
+
+        <!-- ═══════ MAIN VIEW ═══════ -->
+        <div id="main-view" class="hidden">
+            <div class="app-header">
+                <h1 class="app-title">Gestura</h1>
+                <div class="status-dot connected"></div>
+            </div>
+
+            <!-- Camera — the single hero element -->
+            <div class="video-container" id="video-container">
+                <video id="camera-feed" autoplay playsinline muted></video>
+                <canvas id="landmark-canvas"></canvas>
+                <div class="video-placeholder" id="video-placeholder">
+                    <div class="placeholder-dots">
+                        <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                    <span>Waiting for camera…</span>
+                </div>
+            </div>
+
+            <!-- Bottom panel — anchored, not floating -->
+            <div class="bottom-panel">
+
+                <div class="processing-indicator" id="processing-indicator">
+                    <div class="spinner"></div>
+                    <span>Recognizing…</span>
+                </div>
+
+                <span class="result-label" id="result-label"></span>
+
+                <div class="confidence-container" id="confidence-container">
+                    <div class="confidence-bar-track">
+                        <div class="confidence-bar-fill" id="confidence-fill"></div>
+                    </div>
+                    <div class="confidence-text" id="confidence-text"></div>
+                </div>
+
+                <div class="alt-suggestion" id="alt-suggestion">
+                    <span class="alt-suggestion-text">Did you mean</span>
+                    <span class="alt-suggestion-label" id="alt-label"></span>
+                </div>
+
+                <div class="controls-bar" id="controls-bar">
+                    <button class="btn btn-capture" id="btn-capture" disabled>●</button>
+                </div>
+
+                <div class="caption-area" id="caption-area">
+                    <span class="caption-placeholder" id="caption-placeholder">Captions will appear here</span>
+                    <span class="caption-text hidden" id="caption-text"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════ Setup script ═══════ -->
+    <script>
+        const btnTest = document.getElementById('btn-test-connection');
+        const resultBox = document.getElementById('connection-result');
+        const resultTitle = document.getElementById('connection-result-title');
+        const resultDetail = document.getElementById('connection-result-detail');
+        const btnStart = document.getElementById('btn-start-app');
+        const statusDot = document.getElementById('status-dot');
+
+        btnTest.addEventListener('click', async () => {
+            btnTest.disabled = true;
+            btnTest.textContent = 'Connecting…';
+            resultBox.classList.remove('visible', 'success', 'error');
+
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 5000);
+
+                const response = await fetch('/api/ping', { signal: controller.signal });
+                clearTimeout(timeout);
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const data = await response.json();
+
+                if (data.status === 'ok') {
+                    showResult('success', 'Connected',
+                        `Server time: ${data.server_time}\nDTW: ${data.dtw_ready ? 'ready' : 'no templates yet'}\nVocabulary: ${data.vocabulary_size} signs`
+                    );
+                    statusDot.classList.add('connected');
+                    btnStart.classList.remove('hidden');
+                } else {
+                    showResult('error', 'Unexpected response', JSON.stringify(data, null, 2));
+                }
+            } catch (err) {
+                let detail = err.message;
+                if (err.name === 'AbortError') {
+                    detail = 'Connection timed out (5s). Is the server running?';
+                } else if (err.message.includes('Failed to fetch')) {
+                    detail = 'Cannot reach server. Make sure the backend is running.';
+                }
+                showResult('error', 'Connection failed', detail);
+                statusDot.classList.remove('connected');
+            } finally {
+                btnTest.disabled = false;
+                btnTest.textContent = 'Test connection';
+            }
+        });
+
+        function showResult(type, title, detail) {
+            resultBox.className = `connection-result visible ${type}`;
+            resultTitle.textContent = title;
+            resultDetail.textContent = detail;
+        }
+
+        btnStart.addEventListener('click', () => {
+            document.getElementById('setup-view').classList.add('hidden');
+            document.getElementById('main-view').classList.remove('hidden');
+            import('./js/main.js').catch(err => {
+                console.error('Failed to load app modules:', err);
+            });
+        });
+    </script>
+</body>
+</html>

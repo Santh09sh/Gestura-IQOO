@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+venv/
+.env
+
+# Node
+node_modules/
+package-lock.json
+
+# Models & large files (download, don't commit)
+models/
+phone/assets/hand_landmarker.task
+
+# SSL certs
+*.pem
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Agents / system
+.agents/
+.gemini/
