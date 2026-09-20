@@ -29,13 +29,14 @@ const State = {
 class GesturaApp {
     constructor() {
         this.state = State.IDLE;
+        this.mode = 'recognize';     // 'recognize' or 'record'
         this.handTracker = new HandTracker();
         this.capture = new Capture();
         this.network = new Network();
         this.tts = new TTS();
         this.asr = null;  // Initialized after connection
 
-        // DOM refs
+        // DOM refs — recognize mode
         this.btnCapture = document.getElementById('btn-capture');
         this.resultLabel = document.getElementById('result-label');
         this.confidenceContainer = document.getElementById('confidence-container');
@@ -46,6 +47,17 @@ class GesturaApp {
         this.processingIndicator = document.getElementById('processing-indicator');
         this.captionText = document.getElementById('caption-text');
         this.captionPlaceholder = document.getElementById('caption-placeholder');
+
+        // DOM refs — mode toggle
+        this.modeRecognize = document.getElementById('mode-recognize');
+        this.modeRecord = document.getElementById('mode-record');
+        this.recognizeContent = document.getElementById('recognize-content');
+        this.recordContent = document.getElementById('record-content');
+
+        // DOM refs — record mode
+        this.signSelect = document.getElementById('sign-select');
+        this.recordFeedbackText = document.getElementById('record-feedback-text');
+        this.templateCountContainer = document.getElementById('template-count');
     }
 
     async init() {
@@ -106,7 +118,47 @@ class GesturaApp {
             }
         });
 
+        // ── Mode toggle ──
+        this.modeRecognize.addEventListener('click', () => this._switchMode('recognize'));
+        this.modeRecord.addEventListener('click', () => this._switchMode('record'));
+
+        // ── Load initial template counts ──
+        await this._refreshTemplateCounts();
+
         console.log('[Gestura] App ready');
+    }
+
+    // ──────────────────────────────────────────
+    // Mode Switching
+    // ──────────────────────────────────────────
+
+    _switchMode(mode) {
+        if (this.mode === mode) return;
+
+        // Don't switch during active capture
+        if (this.state === State.CAPTURING || this.state === State.RECORDING_REF) {
+            return;
+        }
+
+        this.mode = mode;
+        this.state = State.IDLE;
+
+        // Toggle button active states
+        this.modeRecognize.classList.toggle('active', mode === 'recognize');
+        this.modeRecord.classList.toggle('active', mode === 'record');
+
+        // Toggle content visibility
+        this.recognizeContent.classList.toggle('hidden', mode !== 'recognize');
+        this.recordContent.classList.toggle('hidden', mode !== 'record');
+
+        // Reset UI
+        this._clearResult();
+        this.btnCapture.classList.remove('capturing');
+        this.btnCapture.innerHTML = '●';
+
+        if (mode === 'record') {
+            this._refreshTemplateCounts();
+        }
     }
 
     // ──────────────────────────────────────────
@@ -114,10 +166,26 @@ class GesturaApp {
     // ──────────────────────────────────────────
 
     _handleCaptureToggle() {
+        if (this.mode === 'record') {
+            this._handleRecordToggle();
+        } else {
+            this._handleRecognizeToggle();
+        }
+    }
+
+    _handleRecognizeToggle() {
         if (this.state === State.IDLE || this.state === State.RESULT) {
             this._startCapture();
         } else if (this.state === State.CAPTURING) {
             this._stopCaptureAndRecognize();
+        }
+    }
+
+    _handleRecordToggle() {
+        if (this.state === State.IDLE || this.state === State.RESULT) {
+            this._startRecording();
+        } else if (this.state === State.RECORDING_REF) {
+            this._stopRecordingAndSave();
         }
     }
 
@@ -177,6 +245,105 @@ class GesturaApp {
             this.btnCapture.disabled = false;
             this._showError(err.message);
         }
+    }
+
+    // ──────────────────────────────────────────
+    // Record Reference Mode
+    // ──────────────────────────────────────────
+
+    _startRecording() {
+        this.state = State.RECORDING_REF;
+        this.capture.startCapture();
+
+        const signName = this.signSelect.value;
+        this._setRecordFeedback(`Recording "${signName.replace(/_/g, ' ')}"… tap to stop`, '');
+
+        this.btnCapture.classList.add('capturing');
+        this.btnCapture.innerHTML = '■';
+    }
+
+    async _stopRecordingAndSave() {
+        const request = this.capture.stopCapture();
+        this.btnCapture.classList.remove('capturing');
+        this.btnCapture.innerHTML = '●';
+
+        const signName = this.signSelect.value;
+
+        if (!request || request.landmarks.length === 0) {
+            this.state = State.IDLE;
+            this._setRecordFeedback('No landmarks captured. Show your hand and try again.', 'error');
+            return;
+        }
+
+        // Show saving state
+        this._setRecordFeedback('Saving template…', '');
+        this.btnCapture.disabled = true;
+
+        try {
+            const response = await this.network.saveTemplate(signName, request.landmarks);
+
+            this.state = State.IDLE;
+            this.btnCapture.disabled = false;
+
+            if (response.error) {
+                this._setRecordFeedback(`Error: ${response.error}`, 'error');
+                return;
+            }
+
+            this._setRecordFeedback(
+                `Saved "${signName.replace(/_/g, ' ')}" (${response.total_for_sign} template${response.total_for_sign > 1 ? 's' : ''})`,
+                'success'
+            );
+
+            // Refresh the template counts
+            await this._refreshTemplateCounts();
+
+        } catch (err) {
+            this.state = State.IDLE;
+            this.btnCapture.disabled = false;
+            this._setRecordFeedback(`Failed: ${err.message}`, 'error');
+        }
+    }
+
+    _setRecordFeedback(text, type) {
+        this.recordFeedbackText.textContent = text;
+        this.recordFeedbackText.className = 'record-feedback-text' + (type ? ` ${type}` : '');
+    }
+
+    async _refreshTemplateCounts() {
+        try {
+            const response = await this.network.ping();
+
+            // Also fetch detailed template info via /api/templates/reload
+            const reloadResponse = await this.network.reloadTemplates();
+
+            if (reloadResponse && reloadResponse.signs) {
+                this._renderTemplateCounts(reloadResponse.signs, reloadResponse.total_templates);
+            }
+        } catch (err) {
+            console.warn('[Gestura] Could not load template counts:', err);
+        }
+    }
+
+    _renderTemplateCounts(signs, total) {
+        // Build chips for all vocabulary signs showing count
+        const vocab = [
+            'hello', 'thank_you', 'sorry', 'please', 'yes', 'no',
+            'help', 'stop', 'water', 'food', 'eat', 'good', 'bad',
+            'my_name', 'how_are_you'
+        ];
+
+        // signs is an array of sign names that have templates
+        const signSet = new Set(signs);
+
+        let html = '';
+        for (const sign of vocab) {
+            const has = signSet.has(sign);
+            const display = sign.replace(/_/g, ' ');
+            html += `<span class="template-chip${has ? ' has-templates' : ''}">${display}${has ? ' ✓' : ''}</span>`;
+        }
+
+        this.templateCountContainer.innerHTML = html;
     }
 
     // ──────────────────────────────────────────

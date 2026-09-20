@@ -63,25 +63,65 @@
             <!-- Bottom panel — anchored, not floating -->
             <div class="bottom-panel">
 
-                <div class="processing-indicator" id="processing-indicator">
-                    <div class="spinner"></div>
-                    <span>Recognizing…</span>
+                <!-- Mode toggle: Recognize ↔ Record -->
+                <div class="mode-toggle" id="mode-toggle">
+                    <button class="mode-btn active" id="mode-recognize" data-mode="recognize">Recognize</button>
+                    <button class="mode-btn" id="mode-record" data-mode="record">Record templates</button>
                 </div>
 
-                <span class="result-label" id="result-label"></span>
-
-                <div class="confidence-container" id="confidence-container">
-                    <div class="confidence-bar-track">
-                        <div class="confidence-bar-fill" id="confidence-fill"></div>
+                <!-- ── RECOGNIZE MODE CONTENT ── -->
+                <div class="mode-content" id="recognize-content">
+                    <div class="processing-indicator" id="processing-indicator">
+                        <div class="spinner"></div>
+                        <span>Recognizing…</span>
                     </div>
-                    <div class="confidence-text" id="confidence-text"></div>
+
+                    <span class="result-label" id="result-label"></span>
+
+                    <div class="confidence-container" id="confidence-container">
+                        <div class="confidence-bar-track">
+                            <div class="confidence-bar-fill" id="confidence-fill"></div>
+                        </div>
+                        <div class="confidence-text" id="confidence-text"></div>
+                    </div>
+
+                    <div class="alt-suggestion" id="alt-suggestion">
+                        <span class="alt-suggestion-text">Did you mean</span>
+                        <span class="alt-suggestion-label" id="alt-label"></span>
+                    </div>
                 </div>
 
-                <div class="alt-suggestion" id="alt-suggestion">
-                    <span class="alt-suggestion-text">Did you mean</span>
-                    <span class="alt-suggestion-label" id="alt-label"></span>
+                <!-- ── RECORD MODE CONTENT ── -->
+                <div class="mode-content hidden" id="record-content">
+                    <div class="record-sign-selector">
+                        <label class="input-label" for="sign-select">Sign to record</label>
+                        <select class="sign-select" id="sign-select">
+                            <option value="hello">hello</option>
+                            <option value="thank_you">thank you</option>
+                            <option value="sorry">sorry</option>
+                            <option value="please">please</option>
+                            <option value="yes">yes</option>
+                            <option value="no">no</option>
+                            <option value="help">help</option>
+                            <option value="stop">stop</option>
+                            <option value="water">water</option>
+                            <option value="food">food</option>
+                            <option value="eat">eat</option>
+                            <option value="good">good</option>
+                            <option value="bad">bad</option>
+                            <option value="my_name">my name</option>
+                            <option value="how_are_you">how are you</option>
+                        </select>
+                    </div>
+
+                    <div class="record-feedback" id="record-feedback">
+                        <span class="record-feedback-text" id="record-feedback-text">Select a sign and tap record</span>
+                    </div>
+
+                    <div class="template-count" id="template-count"></div>
                 </div>
 
+                <!-- Controls — shared by both modes -->
                 <div class="controls-bar" id="controls-bar">
                     <button class="btn btn-capture" id="btn-capture" disabled>●</button>
                 </div>

@@ -510,6 +510,140 @@ html, body {
     padding: var(--sp-sm) 0;
 }
 
+/* ═══════════════════════════════════════════════
+   MODE TOGGLE + RECORD UI
+   ═══════════════════════════════════════════════ */
+
+.mode-toggle {
+    display: flex;
+    gap: 2px;
+    background: var(--bg);
+    border-radius: var(--radius-btn);
+    padding: 2px;
+    border: 1px solid var(--border);
+}
+
+.mode-btn {
+    flex: 1;
+    padding: var(--sp-sm) var(--sp-md);
+    border: none;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text-tertiary);
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--transition-result), color var(--transition-result);
+}
+
+.mode-btn.active {
+    background: var(--surface-2);
+    color: var(--text-primary);
+}
+
+.mode-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-md);
+}
+
+/* ── Sign selector ────────────────────────────── */
+
+.record-sign-selector {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-sm);
+}
+
+.input-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.sign-select {
+    width: 100%;
+    padding: var(--sp-sm) var(--sp-md);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-btn);
+    color: var(--text-primary);
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%239AA3AF' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+}
+
+.sign-select option {
+    background: var(--surface);
+    color: var(--text-primary);
+}
+
+/* ── Record feedback ──────────────────────────── */
+
+.record-feedback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+}
+
+.record-feedback-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: opacity var(--transition-result);
+}
+
+.record-feedback-text.success {
+    color: var(--accent-strong);
+}
+
+.record-feedback-text.error {
+    color: var(--attention);
+}
+
+/* ── Template count ───────────────────────────── */
+
+.template-count {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-sm);
+    justify-content: center;
+}
+
+.template-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px var(--sp-sm);
+    border-radius: var(--radius-pill);
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-tertiary);
+}
+
+.template-chip.has-templates {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+
+.template-chip .chip-count {
+    font-weight: 800;
+}
+
 /* ── Caption area (ASR) ───────────────────────── */
 
 .caption-area {
@@ -568,3 +702,4 @@ html, body {
     0%, 100% { opacity: 0.85; }
     50% { opacity: 1; }
 }
+
