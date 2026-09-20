@@ -52,6 +52,14 @@
             <div class="video-container" id="video-container">
                 <video id="camera-feed" autoplay playsinline muted></video>
                 <canvas id="landmark-canvas"></canvas>
+                <button class="btn-switch-camera" id="btn-switch-camera" title="Switch camera">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 16v4a2 2 0 0 1-2 2H6"/>
+                        <path d="M4 8V4a2 2 0 0 1 2-2h12"/>
+                        <polyline points="14 2 20 2 20 8"/>
+                        <polyline points="10 22 4 22 4 16"/>
+                    </svg>
+                </button>
                 <div class="video-placeholder" id="video-placeholder">
                     <div class="placeholder-dots">
                         <span></span><span></span><span></span><span></span><span></span>

@@ -30,6 +30,7 @@ export class HandTracker {
         this.onResults = null;           // Callback: (landmarks) => {}
         this.lastTimestamp = -1;
         this._animFrameId = null;
+        this.facingMode = 'user';        // 'user' = front, 'environment' = rear
     }
 
     /**
@@ -69,9 +70,14 @@ export class HandTracker {
 
     async _startCamera() {
         try {
+            // Stop any existing stream
+            if (this.video.srcObject) {
+                this.video.srcObject.getTracks().forEach(t => t.stop());
+            }
+
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
-                    facingMode: 'user',
+                    facingMode: this.facingMode,
                     width: { ideal: 640 },
                     height: { ideal: 480 },
                 },
@@ -85,6 +91,9 @@ export class HandTracker {
             this.canvas.width = this.video.videoWidth;
             this.canvas.height = this.video.videoHeight;
 
+            // Reset timestamp so detectForVideo doesn't skip frames
+            this.lastTimestamp = -1;
+
             // Hide placeholder
             const placeholder = document.getElementById('video-placeholder');
             if (placeholder) placeholder.classList.add('hidden');
@@ -95,6 +104,15 @@ export class HandTracker {
                 'Camera access denied. Ensure HTTPS and grant camera permission.'
             );
         }
+    }
+
+    /**
+     * Switch between front and rear cameras.
+     */
+    async switchCamera() {
+        this.facingMode = this.facingMode === 'user' ? 'environment' : 'user';
+        console.log(`[HandTracker] Switching to ${this.facingMode} camera`);
+        await this._startCamera();
     }
 
     /**

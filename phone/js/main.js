@@ -109,6 +109,16 @@ class GesturaApp {
         // ── Bind button events ──
         this.btnCapture.addEventListener('click', () => this._handleCaptureToggle());
 
+        // ── Switch camera ──
+        document.getElementById('btn-switch-camera').addEventListener('click', async () => {
+            if (this.state === State.CAPTURING || this.state === State.RECORDING_REF) return;
+            try {
+                await this.handTracker.switchCamera();
+            } catch (err) {
+                console.error('[Gestura] Camera switch failed:', err);
+            }
+        });
+
         // ── Alt suggestion click → accept alternate label ──
         this.altLabel.addEventListener('click', () => {
             const altText = this.altLabel.textContent;

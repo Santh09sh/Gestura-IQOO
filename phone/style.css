@@ -350,6 +350,33 @@ html, body {
 .video-placeholder .placeholder-dots span:nth-child(3) { height: 10px; width: 10px; opacity: 0.7; }
 .video-placeholder .placeholder-dots span:nth-child(4) { height: 8px; width: 8px; }
 
+/* ── Switch camera button ─────────────────────── */
+
+.btn-switch-camera {
+    position: absolute;
+    top: var(--sp-md);
+    right: var(--sp-md);
+    z-index: 3;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-btn);
+    border: 1px solid var(--border);
+    background: rgba(27, 32, 39, 0.75);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background var(--transition-result), color var(--transition-result);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+}
+
+.btn-switch-camera:active {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
 /* ═══════════════════════════════════════════════
    BOTTOM PANEL — anchored, not floating
    Contains: result, confidence, candidates, controls, captions
