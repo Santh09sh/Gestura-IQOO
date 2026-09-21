@@ -13,14 +13,117 @@
         <!-- ═══════ SETUP VIEW ═══════ -->
         <div id="setup-view">
             <div class="app-header">
-                <h1 class="app-title">Gestura</h1>
+                <div class="header-logo" aria-label="Gestura">
+                    <svg class="header-logo-svg" viewBox="0 0 130 30" width="130" height="30" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Left hand (teal) - compact -->
+                        <g>
+                            <circle cx="4" cy="18" r="3" fill="#4CE0B8"/>
+                            <path d="M7,16 C9,13 11,10 13,8" stroke="#4CE0B8" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+                            <path d="M13,8 C12,5 11,3 10,1" stroke="#4CE0B8" stroke-width="2" stroke-linecap="round" fill="none"/>
+                            <path d="M13,8 C14,5 15,3 15.5,1" stroke="#4CE0B8" stroke-width="2" stroke-linecap="round" fill="none"/>
+                            <path d="M11,11 C14,9 17,7 19,6" stroke="#4CE0B8" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+                            <path d="M7,18 C10,20 13,21 16,20" stroke="#4CE0B8" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+                        </g>
+                        <!-- Sparkle -->
+                        <path class="logo-sparkle-sm" d="M26,8 L27.2,11 L30,13 L27.2,15 L26,18 L24.8,15 L22,13 L24.8,11 Z" fill="#E8915A" transform-origin="26px 13px"/>
+                        <!-- Right hand (purple) - compact -->
+                        <g>
+                            <circle cx="48" cy="18" r="3" fill="#9B8ADE"/>
+                            <path d="M45,16 C43,13 41,10 39,8" stroke="#9B8ADE" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+                            <path d="M39,8 C40,5 41,3 42,1" stroke="#9B8ADE" stroke-width="2" stroke-linecap="round" fill="none"/>
+                            <path d="M39,8 C38,5 37,3 36.5,1" stroke="#9B8ADE" stroke-width="2" stroke-linecap="round" fill="none"/>
+                            <path d="M41,11 C38,9 35,7 33,6" stroke="#9B8ADE" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+                            <path d="M45,18 C42,20 39,21 36,20" stroke="#9B8ADE" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+                        </g>
+                        <!-- Text -->
+                        <text x="58" y="20" font-family="'Figtree', sans-serif" font-size="16" font-weight="700" fill="#ECEAE4" letter-spacing="-0.3">Gestura</text>
+                    </svg>
+                </div>
                 <div class="status-dot" id="status-dot"></div>
             </div>
 
             <div class="setup-panel">
+                <!-- ═══ Animated Hero Logo ═══ -->
+                <div class="hero-logo-container">
+                    <svg class="hero-logo" viewBox="0 0 300 240" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <!-- Warm glow behind sparkle -->
+                            <radialGradient id="center-glow" cx="50%" cy="38%" r="22%">
+                                <stop offset="0%" stop-color="#E8915A" stop-opacity="0.45"/>
+                                <stop offset="60%" stop-color="#E8915A" stop-opacity="0.12"/>
+                                <stop offset="100%" stop-color="#E8915A" stop-opacity="0"/>
+                            </radialGradient>
+                            <!-- Sparkle glow filter -->
+                            <filter id="sparkle-glow" x="-80%" y="-80%" width="260%" height="260%">
+                                <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
+                                <feColorMatrix in="blur" type="matrix"
+                                    values="1 0 0 0 0  0 0.6 0 0 0  0 0 0.3 0 0  0 0 0 0.7 0"/>
+                                <feMerge>
+                                    <feMergeNode/>
+                                    <feMergeNode in="SourceGraphic"/>
+                                </feMerge>
+                            </filter>
+                            <!-- Arc for curved text -->
+                            <path id="text-arc" d="M 52 200 A 130 60 0 0 0 248 200" fill="none"/>
+                        </defs>
+
+                        <!-- Background warm glow -->
+                        <circle class="hero-bg-glow" cx="150" cy="92" r="75" fill="url(#center-glow)"/>
+
+                        <!-- ═══ LEFT HAND (Teal) ═══ -->
+                        <g class="hero-hand-left">
+                            <!-- Wrist dot -->
+                            <circle cx="42" cy="132" r="10" fill="#4CE0B8"/>
+                            <circle cx="42" cy="132" r="6.5" fill="#3BC9A3" opacity="0.5"/>
+                            <!-- Palm stroke -->
+                            <path d="M52,126 C60,114 70,100 82,88" stroke="#4CE0B8" stroke-width="7" stroke-linecap="round" fill="none"/>
+                            <!-- Index finger (upper-left prong) -->
+                            <path d="M82,88 C78,72 72,56 66,42" stroke="#4CE0B8" stroke-width="6" stroke-linecap="round" fill="none"/>
+                            <!-- Middle finger (upper prong) -->
+                            <path d="M82,88 C86,70 90,54 90,38" stroke="#4CE0B8" stroke-width="6" stroke-linecap="round" fill="none"/>
+                            <!-- Ring finger (shorter, angled right) -->
+                            <path d="M76,100 C88,92 100,82 108,72" stroke="#4CE0B8" stroke-width="5" stroke-linecap="round" fill="none"/>
+                            <!-- Thumb (curves down-right) -->
+                            <path d="M50,134 C62,142 78,146 92,142" stroke="#4CE0B8" stroke-width="5.5" stroke-linecap="round" fill="none"/>
+                        </g>
+
+                        <!-- ═══ RIGHT HAND (Purple) ═══ -->
+                        <g class="hero-hand-right">
+                            <!-- Wrist dot -->
+                            <circle cx="258" cy="132" r="10" fill="#9B8ADE"/>
+                            <circle cx="258" cy="132" r="6.5" fill="#8674C9" opacity="0.5"/>
+                            <!-- Palm stroke -->
+                            <path d="M248,126 C240,114 230,100 218,88" stroke="#9B8ADE" stroke-width="7" stroke-linecap="round" fill="none"/>
+                            <!-- Index finger (upper-right prong) -->
+                            <path d="M218,88 C222,72 228,56 234,42" stroke="#9B8ADE" stroke-width="6" stroke-linecap="round" fill="none"/>
+                            <!-- Middle finger (upper prong) -->
+                            <path d="M218,88 C214,70 210,54 210,38" stroke="#9B8ADE" stroke-width="6" stroke-linecap="round" fill="none"/>
+                            <!-- Ring finger (shorter, angled left) -->
+                            <path d="M224,100 C212,92 200,82 192,72" stroke="#9B8ADE" stroke-width="5" stroke-linecap="round" fill="none"/>
+                            <!-- Thumb (curves down-left) -->
+                            <path d="M250,134 C238,142 222,146 208,142" stroke="#9B8ADE" stroke-width="5.5" stroke-linecap="round" fill="none"/>
+                        </g>
+
+                        <!-- ═══ CENTER SPARKLE ═══ -->
+                        <g class="hero-sparkle" filter="url(#sparkle-glow)">
+                            <!-- Main 4-pointed star -->
+                            <path d="M150,72 L154,86 L166,92 L154,98 L150,112 L146,98 L134,92 L146,86 Z" fill="#E8915A"/>
+                            <!-- Mini sparkle top-right -->
+                            <path d="M168,78 L169.5,81 L172,83 L169.5,85 L168,88 L166.5,85 L164,83 L166.5,81 Z" fill="#E8915A" opacity="0.55"/>
+                            <!-- Mini sparkle bottom-left -->
+                            <path d="M132,98 L133.5,101 L136,103 L133.5,105 L132,108 L130.5,105 L128,103 L130.5,101 Z" fill="#E8915A" opacity="0.4"/>
+                        </g>
+
+                        <!-- ═══ CURVED TEXT "Gestura" ═══ -->
+                        <text class="hero-logo-text" font-family="'Figtree', sans-serif" font-size="32" font-weight="800" fill="#ECEAE4" letter-spacing="4">
+                            <textPath href="#text-arc" startOffset="50%" text-anchor="middle">Gestura</textPath>
+                        </text>
+                    </svg>
+                </div>
+
+
                 <div>
-                    <p class="setup-title">Welcome to Gestura</p>
-                    <p class="setup-description">
+                    <p class="setup-description" style="text-align:center">
                         Sign language recognition, right from your camera.
                         Tap below to verify the server connection.
                     </p>
@@ -44,7 +147,32 @@
         <!-- ═══════ MAIN VIEW ═══════ -->
         <div id="main-view" class="hidden">
             <div class="app-header">
-                <h1 class="app-title">Gestura</h1>
+                <div class="header-logo" aria-label="Gestura">
+                    <svg class="header-logo-svg" viewBox="0 0 130 30" width="130" height="30" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Left hand (teal) - compact -->
+                        <g>
+                            <circle cx="4" cy="18" r="3" fill="#4CE0B8"/>
+                            <path d="M7,16 C9,13 11,10 13,8" stroke="#4CE0B8" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+                            <path d="M13,8 C12,5 11,3 10,1" stroke="#4CE0B8" stroke-width="2" stroke-linecap="round" fill="none"/>
+                            <path d="M13,8 C14,5 15,3 15.5,1" stroke="#4CE0B8" stroke-width="2" stroke-linecap="round" fill="none"/>
+                            <path d="M11,11 C14,9 17,7 19,6" stroke="#4CE0B8" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+                            <path d="M7,18 C10,20 13,21 16,20" stroke="#4CE0B8" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+                        </g>
+                        <!-- Sparkle -->
+                        <path class="logo-sparkle-sm" d="M26,8 L27.2,11 L30,13 L27.2,15 L26,18 L24.8,15 L22,13 L24.8,11 Z" fill="#E8915A" transform-origin="26px 13px"/>
+                        <!-- Right hand (purple) - compact -->
+                        <g>
+                            <circle cx="48" cy="18" r="3" fill="#9B8ADE"/>
+                            <path d="M45,16 C43,13 41,10 39,8" stroke="#9B8ADE" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+                            <path d="M39,8 C40,5 41,3 42,1" stroke="#9B8ADE" stroke-width="2" stroke-linecap="round" fill="none"/>
+                            <path d="M39,8 C38,5 37,3 36.5,1" stroke="#9B8ADE" stroke-width="2" stroke-linecap="round" fill="none"/>
+                            <path d="M41,11 C38,9 35,7 33,6" stroke="#9B8ADE" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+                            <path d="M45,18 C42,20 39,21 36,20" stroke="#9B8ADE" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+                        </g>
+                        <!-- Text -->
+                        <text x="58" y="20" font-family="'Figtree', sans-serif" font-size="16" font-weight="700" fill="#ECEAE4" letter-spacing="-0.3">Gestura</text>
+                    </svg>
+                </div>
                 <div class="status-dot connected"></div>
             </div>
 
