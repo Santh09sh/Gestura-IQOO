@@ -139,7 +139,7 @@ html, body {
 .header-logo {
     display: flex;
     align-items: center;
-    height: 48px;
+    height: 56px;
 }
 
 .header-logo-svg {
@@ -147,9 +147,8 @@ html, body {
 }
 
 .header-logo img {
-    height: 48px;
+    height: 56px;
     width: auto;
-    mix-blend-mode: screen;
 }
 
 .logo-sparkle-sm {
@@ -1032,8 +1031,9 @@ html, body {
     
     .app-container {
         margin: 0;
-        height: 850px;
-        max-height: 90vh;
+        max-width: 600px;
+        height: 900px;
+        max-height: 95vh;
         border-radius: 32px;
         overflow: hidden;
         border: 8px solid var(--border);
@@ -1050,20 +1050,20 @@ html, body {
     align-items: center;
     justify-content: center;
     position: relative;
-    padding: var(--sp-xl) var(--sp-lg) var(--sp-lg) var(--sp-lg);
+    padding: var(--sp-lg) var(--sp-lg) var(--sp-sm) var(--sp-lg);
     flex-shrink: 0;
 }
 
 .large-logo {
-    height: 72px; /* Much larger and more visible */
+    height: 80px;
     width: auto;
-    mix-blend-mode: screen;
 }
 
-.app-header-large .status-dot {
+.app-header-large .header-actions {
     position: absolute;
     right: var(--sp-lg);
-    top: 36px;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 
@@ -1140,10 +1140,9 @@ html, body {
 
 /* -- Light Mode Overrides ----------------------- */
 
-:root.light .header-logo img,
 :root.light .large-logo,
 :root.light .hero-logo {
-    mix-blend-mode: multiply;
+    filter: invert(1) hue-rotate(180deg);
 }
 
 :root.light .btn-switch-camera {

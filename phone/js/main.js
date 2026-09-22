@@ -50,6 +50,7 @@ class GesturaApp {
         this._handFrameCount = 0;
         this._wantContinuous = false;  // true while user wants continuous mode running
 
+
         // DOM refs — recognize mode
         this.btnCapture = document.getElementById('btn-capture');
         this.resultLabel = document.getElementById('result-label');
@@ -150,6 +151,7 @@ class GesturaApp {
 
         // ── Bind button events ──
         this.btnCapture.addEventListener('click', () => this._handleCaptureToggle());
+
 
         // ── Switch camera ──
         document.getElementById('btn-switch-camera').addEventListener('click', async () => {
@@ -342,6 +344,8 @@ class GesturaApp {
             return;
         }
 
+
+
         // Show processing indicator briefly
         this.state = State.PROCESSING;
         this.processingIndicator.classList.add('visible');
@@ -394,6 +398,7 @@ class GesturaApp {
             this.state = State.IDLE;
         }
     }
+
 
     _handleRecordToggle() {
         if (this.state === State.IDLE || this.state === State.RESULT) {
