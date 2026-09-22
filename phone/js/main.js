@@ -69,6 +69,18 @@ class GesturaApp {
         this.recognizeContent = document.getElementById('recognize-content');
         this.recordContent = document.getElementById('record-content');
 
+        // DOM refs — live status panel (wider screens)
+        this.statusCamera = document.getElementById('status-camera');
+        this.iconCamera = document.getElementById('icon-camera');
+        this.statusAi = document.getElementById('status-ai');
+        this.iconAi = document.getElementById('icon-ai');
+        this.statusConn = document.getElementById('status-conn');
+        this.iconConn = document.getElementById('icon-conn');
+        this.statusAudio = document.getElementById('status-audio');
+        this.iconAudio = document.getElementById('icon-audio');
+        this.statusLandmarks = document.getElementById('status-landmarks');
+        this.statusConfidence = document.getElementById('status-confidence');
+
         // DOM refs — record mode
         this.signSelect = document.getElementById('sign-select');
         this.recordFeedbackText = document.getElementById('record-feedback-text');
@@ -89,10 +101,18 @@ class GesturaApp {
 
             this.handTracker.start();
             this.btnCapture.disabled = false;
+            if (this.statusCamera) {
+                this.statusCamera.textContent = 'Active (waiting)';
+                this.iconCamera.classList.add('active');
+            }
             console.log('[Gestura] Hand tracker ready');
         } catch (err) {
             console.error('[Gestura] Hand tracker init failed:', err);
             this._showError('Camera access failed. Grant permission and reload.');
+            if (this.statusCamera) {
+                this.statusCamera.textContent = 'Error';
+                this.iconCamera.classList.add('error');
+            }
             return;
         }
 
@@ -103,6 +123,10 @@ class GesturaApp {
         };
         this.asr.onStatusChange = (status) => {
             console.log('[ASR Status]', status);
+            if (this.statusAudio) {
+                this.statusAudio.textContent = status === 'listening' ? 'Listening...' : 'TTS Ready';
+                this.iconAudio.classList.toggle('active', status === 'listening');
+            }
         };
 
         const asrMode = await this.asr.init();
@@ -110,6 +134,13 @@ class GesturaApp {
 
         if (asrMode !== 'none') {
             await this.asr.startListening();
+            if (this.statusAudio) {
+                this.statusAudio.textContent = 'TTS Ready (ASR active)';
+                this.iconAudio.classList.add('active');
+            }
+        } else if (this.statusAudio) {
+            this.statusAudio.textContent = 'TTS Ready';
+            this.iconAudio.classList.add('active');
         }
 
         // ── Set up capture state callback ──
@@ -155,6 +186,19 @@ class GesturaApp {
 
     _onHandFrame(hands) {
         const hasHands = hands && hands.length > 0;
+        
+        // Update live status panel
+        if (this.statusLandmarks) {
+            const numLandmarks = hasHands ? hands.reduce((sum, h) => sum + h.points.length, 0) : 0;
+            this.statusLandmarks.textContent = numLandmarks;
+            
+            if (hasHands && this.statusCamera.textContent !== 'Tracking hand...') {
+                this.statusCamera.textContent = 'Tracking hand...';
+                this.iconCamera.classList.add('active');
+            } else if (!hasHands && this.statusCamera.textContent !== 'Active (waiting)') {
+                this.statusCamera.textContent = 'Active (waiting)';
+            }
+        }
 
         if (this.state === State.RECORDING_REF) {
             // Record mode: just buffer frames normally
@@ -301,11 +345,19 @@ class GesturaApp {
         // Show processing indicator briefly
         this.state = State.PROCESSING;
         this.processingIndicator.classList.add('visible');
+        if (this.statusAi) {
+            this.statusAi.textContent = 'Processing segment...';
+            this.iconAi.classList.add('active');
+        }
 
         try {
             const response = await this.network.recognize(request);
 
             this.processingIndicator.classList.remove('visible');
+            if (this.statusAi) {
+                this.statusAi.textContent = 'DTW Recognition';
+                this.iconAi.classList.remove('active');
+            }
 
             if (response.error) {
                 console.warn('[Gestura] Recognition error:', response.error);
@@ -417,6 +469,12 @@ class GesturaApp {
     async _refreshTemplateCounts() {
         try {
             const response = await this.network.ping();
+            
+            if (this.statusConn) {
+                this.statusConn.textContent = 'Online';
+                this.iconConn.classList.add('active');
+                this.iconConn.classList.remove('error');
+            }
 
             const reloadResponse = await this.network.reloadTemplates();
 
@@ -425,6 +483,11 @@ class GesturaApp {
             }
         } catch (err) {
             console.warn('[Gestura] Could not load template counts:', err);
+            if (this.statusConn) {
+                this.statusConn.textContent = 'Offline';
+                this.iconConn.classList.remove('active');
+                this.iconConn.classList.add('error');
+            }
         }
     }
 
@@ -466,6 +529,10 @@ class GesturaApp {
         const pct = Math.round(confidence * 100);
         this.confidenceFill.style.width = `${pct}%`;
         this.confidenceText.textContent = `${pct}% confidence`;
+        
+        if (this.statusConfidence) {
+            this.statusConfidence.textContent = `${pct}%`;
+        }
 
         // Color the bar based on confidence level
         this.confidenceFill.classList.remove('mid', 'low');
