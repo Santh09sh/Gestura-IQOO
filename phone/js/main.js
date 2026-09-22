@@ -50,18 +50,6 @@ class GesturaApp {
         this._handFrameCount = 0;
         this._wantContinuous = false;  // true while user wants continuous mode running
 
-        // ── Demo Mode (Bluff System) ──
-        // Triple-tap the logo to toggle. In demo mode, recognition
-        // is faked — each gesture shows the next word from the script.
-        this._demoMode = false;
-        this._demoScript = [
-            'hello', 'please', 'help', 'food', 'thank you',
-            'sorry', 'yes', 'no', 'good', 'water'
-        ];
-        this._demoIndex = 0;
-        this._logoTapCount = 0;
-        this._logoTapTimer = null;
-
         // DOM refs — recognize mode
         this.btnCapture = document.getElementById('btn-capture');
         this.resultLabel = document.getElementById('result-label');
@@ -162,20 +150,6 @@ class GesturaApp {
 
         // ── Bind button events ──
         this.btnCapture.addEventListener('click', () => this._handleCaptureToggle());
-
-        // ── Triple-tap logo to toggle demo mode ──
-        const mainLogo = document.querySelector('.app-header-large .large-logo');
-        if (mainLogo) {
-            mainLogo.addEventListener('click', () => {
-                this._logoTapCount++;
-                if (this._logoTapTimer) clearTimeout(this._logoTapTimer);
-                this._logoTapTimer = setTimeout(() => { this._logoTapCount = 0; }, 600);
-                if (this._logoTapCount >= 3) {
-                    this._logoTapCount = 0;
-                    this._toggleDemoMode();
-                }
-            });
-        }
 
         // ── Switch camera ──
         document.getElementById('btn-switch-camera').addEventListener('click', async () => {
@@ -368,12 +342,6 @@ class GesturaApp {
             return;
         }
 
-        // ── DEMO MODE: fake the result ──
-        if (this._demoMode) {
-            await this._fakeRecognize();
-            return;
-        }
-
         // Show processing indicator briefly
         this.state = State.PROCESSING;
         this.processingIndicator.classList.add('visible');
@@ -422,76 +390,6 @@ class GesturaApp {
         if (this._wantContinuous) {
             this.state = State.CONTINUOUS;
             // Capture will restart on next hand frame via _onHandFrame
-        } else {
-            this.state = State.IDLE;
-        }
-    }
-
-    // ──────────────────────────────────────────
-    // Demo Mode (Bluff System)
-    // ──────────────────────────────────────────
-
-    _toggleDemoMode() {
-        this._demoMode = !this._demoMode;
-        this._demoIndex = 0;
-
-        if (this._demoMode) {
-            // Subtle visual cue — only visible if you know to look
-            console.log('%c[DEMO MODE ON]', 'color: #F5A623; font-weight: bold; font-size: 16px');
-            // Tiny dot indicator on the logo
-            const logo = document.querySelector('.app-header-large .large-logo');
-            if (logo) logo.style.filter = 'drop-shadow(0 0 2px #F5A623)';
-        } else {
-            console.log('%c[DEMO MODE OFF]', 'color: #5EAE9B; font-weight: bold; font-size: 16px');
-            const logo = document.querySelector('.app-header-large .large-logo');
-            if (logo) logo.style.filter = '';
-        }
-    }
-
-    /**
-     * Fake recognition — simulates the real flow but uses scripted words.
-     * Shows a brief processing delay to look realistic.
-     */
-    async _fakeRecognize() {
-        this.state = State.PROCESSING;
-        this.processingIndicator.classList.add('visible');
-        if (this.statusAi) {
-            this.statusAi.textContent = 'Processing segment...';
-            this.iconAi.classList.add('active');
-        }
-
-        // Realistic processing delay (300-600ms)
-        const delay = 300 + Math.random() * 300;
-        await new Promise(r => setTimeout(r, delay));
-
-        this.processingIndicator.classList.remove('visible');
-        if (this.statusAi) {
-            this.statusAi.textContent = 'DTW Recognition';
-            this.iconAi.classList.remove('active');
-        }
-
-        // Get the next scripted word
-        const label = this._demoScript[this._demoIndex % this._demoScript.length];
-        this._demoIndex++;
-
-        // Fake a high confidence (85-98%)
-        const confidence = 0.85 + Math.random() * 0.13;
-
-        this._displayResult(label, confidence);
-        this._appendSignCaption(label, confidence);
-        this.altSuggestion.classList.remove('visible');
-
-        // Update status panel
-        if (this.statusConfidence) {
-            this.statusConfidence.textContent = `${Math.round(confidence * 100)}%`;
-        }
-
-        // Speak it
-        this.tts.speakLabel(label);
-
-        // Continue capturing if user hasn't stopped
-        if (this._wantContinuous) {
-            this.state = State.CONTINUOUS;
         } else {
             this.state = State.IDLE;
         }
