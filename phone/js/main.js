@@ -1,11 +1,13 @@
 /**
  * Main — App Controller
  * ─────────────────────
- * Wires all modules together. Manages app state:
- *   idle → capturing → processing → result → idle
+ * Wires all modules together. Manages app state.
  *
- * Also handles the "Record Reference" mode for capturing
- * DTW reference templates.
+ * RECOGNIZE MODE: Continuous recognition.
+ *   Tap Start → auto-captures segments → sends each for recognition →
+ *   displays word in caption → loops. Tap Stop to end.
+ *
+ * RECORD MODE: Manual start/stop per template.
  */
 
 import { HandTracker } from './hand_tracker.js';
@@ -20,11 +22,17 @@ import { ASR } from './asr.js';
 
 const State = {
     IDLE: 'idle',
-    CAPTURING: 'capturing',
-    PROCESSING: 'processing',
+    CONTINUOUS: 'continuous',       // Continuously capturing & recognizing
+    PROCESSING: 'processing',       // Sending a segment for recognition
     RESULT: 'result',
-    RECORDING_REF: 'recording_ref',  // Recording a DTW reference template
+    RECORDING_REF: 'recording_ref', // Recording a DTW reference template
 };
+
+// How many frames to capture per recognition segment
+const SEGMENT_FRAMES = 45;
+
+// Minimum frames with a hand detected to consider a valid segment
+const MIN_HAND_FRAMES = 15;
 
 class GesturaApp {
     constructor() {
@@ -34,7 +42,13 @@ class GesturaApp {
         this.capture = new Capture();
         this.network = new Network();
         this.tts = new TTS();
-        this.asr = null;  // Initialized after connection
+        this.asr = null;
+        this.captionHistory = [];
+
+        // Continuous mode tracking
+        this._continuousFrameCount = 0;
+        this._handFrameCount = 0;
+        this._wantContinuous = false;  // true while user wants continuous mode running
 
         // DOM refs — recognize mode
         this.btnCapture = document.getElementById('btn-capture');
@@ -47,6 +61,7 @@ class GesturaApp {
         this.processingIndicator = document.getElementById('processing-indicator');
         this.captionText = document.getElementById('caption-text');
         this.captionPlaceholder = document.getElementById('caption-placeholder');
+        this.captionArea = document.getElementById('caption-area');
 
         // DOM refs — mode toggle
         this.modeRecognize = document.getElementById('mode-recognize');
@@ -69,10 +84,7 @@ class GesturaApp {
             const canvas = document.getElementById('landmark-canvas');
 
             await this.handTracker.init(video, canvas, (hands) => {
-                // Feed landmarks to capture module when capturing
-                if (this.state === State.CAPTURING || this.state === State.RECORDING_REF) {
-                    this.capture.addFrame(hands);
-                }
+                this._onHandFrame(hands);
             });
 
             this.handTracker.start();
@@ -96,7 +108,6 @@ class GesturaApp {
         const asrMode = await this.asr.init();
         console.log(`[Gestura] ASR mode: ${asrMode}`);
 
-        // Start listening for captions
         if (asrMode !== 'none') {
             await this.asr.startListening();
         }
@@ -111,7 +122,7 @@ class GesturaApp {
 
         // ── Switch camera ──
         document.getElementById('btn-switch-camera').addEventListener('click', async () => {
-            if (this.state === State.CAPTURING || this.state === State.RECORDING_REF) return;
+            if (this.state === State.CONTINUOUS || this.state === State.RECORDING_REF) return;
             try {
                 await this.handTracker.switchCamera();
             } catch (err) {
@@ -123,7 +134,7 @@ class GesturaApp {
         this.altLabel.addEventListener('click', () => {
             const altText = this.altLabel.textContent;
             if (altText) {
-                this._displayResult(altText, 1.0); // Show as accepted
+                this._displayResult(altText, 1.0);
                 this.tts.speakLabel(altText);
             }
         });
@@ -139,6 +150,53 @@ class GesturaApp {
     }
 
     // ──────────────────────────────────────────
+    // Hand Frame Callback (called every frame)
+    // ──────────────────────────────────────────
+
+    _onHandFrame(hands) {
+        const hasHands = hands && hands.length > 0;
+
+        if (this.state === State.RECORDING_REF) {
+            // Record mode: just buffer frames normally
+            this.capture.addFrame(hands);
+            return;
+        }
+
+        if (this.state === State.CONTINUOUS) {
+            // Continuous recognize mode: auto-segment
+            if (hasHands) {
+                // Start capturing if not already
+                if (!this.capture.isCapturing) {
+                    this.capture.startCapture();
+                    this._continuousFrameCount = 0;
+                    this._handFrameCount = 0;
+                }
+                this.capture.addFrame(hands);
+                this._continuousFrameCount++;
+                this._handFrameCount++;
+
+                // Once we have enough frames, auto-send for recognition
+                if (this._continuousFrameCount >= SEGMENT_FRAMES) {
+                    this._autoRecognize();
+                }
+            } else if (this.capture.isCapturing) {
+                // No hand detected — add empty frame to count
+                this._continuousFrameCount++;
+
+                // If we have some hand frames and then lost the hand, send what we have
+                if (this._handFrameCount >= MIN_HAND_FRAMES) {
+                    this._autoRecognize();
+                } else if (this._continuousFrameCount >= SEGMENT_FRAMES) {
+                    // Too many empty frames, reset
+                    this.capture.reset();
+                    this._continuousFrameCount = 0;
+                    this._handFrameCount = 0;
+                }
+            }
+        }
+    }
+
+    // ──────────────────────────────────────────
     // Mode Switching
     // ──────────────────────────────────────────
 
@@ -146,7 +204,7 @@ class GesturaApp {
         if (this.mode === mode) return;
 
         // Don't switch during active capture
-        if (this.state === State.CAPTURING || this.state === State.RECORDING_REF) {
+        if (this.state === State.CONTINUOUS || this.state === State.RECORDING_REF) {
             return;
         }
 
@@ -185,9 +243,103 @@ class GesturaApp {
 
     _handleRecognizeToggle() {
         if (this.state === State.IDLE || this.state === State.RESULT) {
-            this._startCapture();
-        } else if (this.state === State.CAPTURING) {
-            this._stopCaptureAndRecognize();
+            // Start continuous recognition
+            this._startContinuous();
+        } else if (this.state === State.CONTINUOUS || this.state === State.PROCESSING) {
+            // Stop continuous recognition
+            this._stopContinuous();
+        }
+    }
+
+    _startContinuous() {
+        this.state = State.CONTINUOUS;
+        this._wantContinuous = true;
+        this._continuousFrameCount = 0;
+        this._handFrameCount = 0;
+        this._clearResult();
+
+        this.btnCapture.classList.add('capturing');
+        this.btnCapture.innerHTML = '■';  // Stop icon
+
+        // Show a hint
+        this.resultLabel.textContent = 'Show a sign…';
+        this.resultLabel.classList.add('visible');
+        this.resultLabel.classList.remove('low-confidence');
+    }
+
+    _stopContinuous() {
+        this._wantContinuous = false;
+        this.state = State.IDLE;
+        this.capture.reset();
+
+        this.btnCapture.classList.remove('capturing');
+        this.btnCapture.innerHTML = '●';
+        this.btnCapture.disabled = false;
+
+        this.processingIndicator.classList.remove('visible');
+        this.resultLabel.textContent = '';
+        this.resultLabel.classList.remove('visible');
+    }
+
+    /**
+     * Auto-recognize: take the current captured segment, send it,
+     * display the result, and prepare for the next segment.
+     */
+    async _autoRecognize() {
+        const request = this.capture.stopCapture();
+        this._continuousFrameCount = 0;
+        this._handFrameCount = 0;
+
+        if (!request || request.landmarks.length === 0) {
+            // No data — restart capture if still in continuous mode
+            if (this._wantContinuous) {
+                this.state = State.CONTINUOUS;
+            }
+            return;
+        }
+
+        // Show processing indicator briefly
+        this.state = State.PROCESSING;
+        this.processingIndicator.classList.add('visible');
+
+        try {
+            const response = await this.network.recognize(request);
+
+            this.processingIndicator.classList.remove('visible');
+
+            if (response.error) {
+                console.warn('[Gestura] Recognition error:', response.error);
+            } else {
+                this._displayResult(response.label, response.confidence);
+
+                // Append to caption transcript
+                if (response.label && response.label !== 'unknown') {
+                    this._appendSignCaption(response.label, response.confidence);
+                }
+
+                // Show "Did you mean?" for low confidence
+                if (response.confidence < 0.5 && response.alternate_label) {
+                    this._showAltSuggestion(response.alternate_label, response.alternate_confidence);
+                } else {
+                    this.altSuggestion.classList.remove('visible');
+                }
+
+                // Speak the result
+                if (response.label && response.label !== 'unknown' && response.confidence >= 0.4) {
+                    this.tts.speakLabel(response.label);
+                }
+            }
+        } catch (err) {
+            this.processingIndicator.classList.remove('visible');
+            console.warn('[Gestura] Recognition request failed:', err.message);
+        }
+
+        // Continue capturing if user hasn't stopped
+        if (this._wantContinuous) {
+            this.state = State.CONTINUOUS;
+            // Capture will restart on next hand frame via _onHandFrame
+        } else {
+            this.state = State.IDLE;
         }
     }
 
@@ -196,64 +348,6 @@ class GesturaApp {
             this._startRecording();
         } else if (this.state === State.RECORDING_REF) {
             this._stopRecordingAndSave();
-        }
-    }
-
-    _startCapture() {
-        this.state = State.CAPTURING;
-        this.capture.startCapture();
-        this._clearResult();
-
-        this.btnCapture.classList.add('capturing');
-        this.btnCapture.innerHTML = '■';  // Stop icon
-    }
-
-    async _stopCaptureAndRecognize() {
-        const request = this.capture.stopCapture();
-        this.btnCapture.classList.remove('capturing');
-        this.btnCapture.innerHTML = '●';  // Record icon
-
-        if (!request || request.landmarks.length === 0) {
-            this.state = State.IDLE;
-            this._showError('No hand landmarks captured. Try again.');
-            return;
-        }
-
-        // ── Processing state ──
-        this.state = State.PROCESSING;
-        this.processingIndicator.classList.add('visible');
-        this.btnCapture.disabled = true;
-
-        try {
-            const response = await this.network.recognize(request);
-
-            // ── Display result ──
-            this.state = State.RESULT;
-            this.processingIndicator.classList.remove('visible');
-            this.btnCapture.disabled = false;
-
-            if (response.error) {
-                this._showError(response.error);
-                return;
-            }
-
-            this._displayResult(response.label, response.confidence);
-
-            // Show "Did you mean?" for low confidence
-            if (response.confidence < 0.5 && response.alternate_label) {
-                this._showAltSuggestion(response.alternate_label, response.alternate_confidence);
-            }
-
-            // Speak the result
-            if (response.label && response.label !== 'unknown') {
-                await this.tts.speakLabel(response.label);
-            }
-
-        } catch (err) {
-            this.state = State.IDLE;
-            this.processingIndicator.classList.remove('visible');
-            this.btnCapture.disabled = false;
-            this._showError(err.message);
         }
     }
 
@@ -324,7 +418,6 @@ class GesturaApp {
         try {
             const response = await this.network.ping();
 
-            // Also fetch detailed template info via /api/templates/reload
             const reloadResponse = await this.network.reloadTemplates();
 
             if (reloadResponse && reloadResponse.signs) {
@@ -336,14 +429,10 @@ class GesturaApp {
     }
 
     _renderTemplateCounts(signs, total) {
-        // Build chips for all vocabulary signs showing count
         const vocab = [
-            'hello', 'thank_you', 'sorry', 'please', 'yes', 'no',
-            'help', 'stop', 'water', 'food', 'eat', 'good', 'bad',
-            'my_name', 'how_are_you'
+            'help', 'food', 'sorry', 'please', 'good', 'no', 'yes'
         ];
 
-        // signs is an array of sign names that have templates
         const signSet = new Set(signs);
 
         let html = '';
@@ -409,12 +498,44 @@ class GesturaApp {
         }
     }
 
+    /**
+     * Update caption from ASR (speech-to-text) results.
+     */
     _updateCaption(text) {
         if (text) {
             this.captionText.textContent = text;
             this.captionText.classList.remove('hidden');
             this.captionPlaceholder.classList.add('hidden');
         }
+    }
+
+    /**
+     * Append a recognized sign label to the caption transcript.
+     */
+    _appendSignCaption(label, confidence) {
+        const displayLabel = label.replace(/_/g, ' ');
+
+        // Add to history
+        this.captionHistory.push(displayLabel);
+
+        // Keep last 20 signs to avoid overflow
+        if (this.captionHistory.length > 20) {
+            this.captionHistory.shift();
+        }
+
+        // Build the transcript string
+        const transcript = this.captionHistory.join(' · ');
+
+        // Update the caption area
+        this.captionText.textContent = transcript;
+        this.captionText.classList.remove('hidden');
+        this.captionPlaceholder.classList.add('hidden');
+
+        // Add a brief highlight animation
+        this.captionArea.classList.add('caption-updated');
+        setTimeout(() => {
+            this.captionArea.classList.remove('caption-updated');
+        }, 600);
     }
 
     _showError(message) {
@@ -432,3 +553,4 @@ const app = new GesturaApp();
 app.init().catch(err => {
     console.error('[Gestura] Fatal init error:', err);
 });
+
