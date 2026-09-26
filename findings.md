@@ -143,4 +143,64 @@ The full dataset has 263 signs across 15 categories. Relevant categories for our
 
 ---
 
-*Last updated: 2026-09-11*
+## 8. NLU — Sentence Formation via Local LLM
+
+### Problem
+Raw sign recognition produces isolated keywords: `HELP`, `WATER`. This is unnatural and difficult for hearing people to understand in conversation. ISL also has a different grammatical structure from English (e.g., SOV order), so direct concatenation doesn't produce readable English.
+
+### Approach: Local LLM via Ollama
+- **Ollama** provides a local REST API for running open-weight LLMs
+- One-command install: `curl -fsSL https://ollama.ai/install.sh | sh` (or Windows installer)
+- Models pulled once: `ollama pull gemma2:2b` (~1.6GB)
+- REST endpoint: `POST http://localhost:11434/api/generate`
+- **Zero cloud dependency** — everything runs on the laptop
+
+### Model Selection
+
+| Model | Size | Speed (laptop) | Quality | Recommendation |
+|-------|------|----------------|---------|----------------|
+| Gemma 2B | ~1.6GB | ~2-3s | Good for simple sentences | **Primary choice** |
+| Phi-3 Mini (3.8B) | ~2.3GB | ~4-5s | Better grammar | Alternative |
+| Llama 3.2 1B | ~1.3GB | ~1-2s | Acceptable | Fastest option |
+| Gemma 7B | ~5GB | ~8-10s | Excellent | If laptop has GPU |
+
+**Decision:** Start with `gemma2:2b` — small enough for CPU inference, good sentence quality for our vocabulary.
+
+### Prompt Engineering Strategy
+
+```
+System: You are a sign language interpreter. Convert ISL sign keywords into a natural,
+polite English sentence. Output ONLY the sentence, nothing else. Keep it concise and
+conversational. The signs are in the order they were performed.
+
+User: help, water
+Assistant: Could you please give me some water?
+
+User: hello, how_are_you
+Assistant: Hello! How are you doing?
+
+User: food, please
+Assistant: Could I have some food, please?
+```
+
+Key constraints for the prompt:
+- Output only the sentence (no explanations, no quotes)
+- Keep sentences short and conversational
+- Maintain politeness appropriate to ISL communication context
+- Handle single-sign inputs (just speak the word naturally)
+
+### Fallback Strategy
+If Ollama is not running or the model fails:
+1. Join signs with spaces: `"help water"` → `"help water"`
+2. Speak the fallback string via TTS
+3. Mark response with `"source": "fallback"` so the phone UI can indicate degraded mode
+
+### Latency Budget
+- Target: < 3 seconds from buffer-complete to TTS start
+- Ollama generation (2B model, ~20 tokens): ~2-3s on CPU
+- Network round trip (LAN): < 50ms
+- Acceptable for conversational pace
+
+---
+
+*Last updated: 2026-09-26*

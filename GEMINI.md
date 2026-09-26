@@ -67,7 +67,39 @@
 - `source` is always one of: `"ai4bharat"` or `"dtw"`. Never omitted, never ambiguous.
 - If confidence < 0.5, the phone UI shows a "Did you mean?" prompt with both candidates.
 
-### 1.3 Ping (Health Check)
+### 1.3 Sentence Formation Request (Phone → Laptop)
+
+```json
+{
+  "signs": ["help", "water"],
+  "context": "conversation"
+}
+```
+
+**Rules:**
+- `signs` is an ordered array of recognized sign labels (strings from the vocabulary).
+- `context` is optional, defaults to `"conversation"`. Reserved for future use (e.g., `"emergency"` for urgent phrasing).
+- The server sends this to a local LLM (Ollama) to form a natural sentence.
+- If the LLM is unavailable, the server returns the signs joined as a fallback.
+
+### 1.4 Sentence Formation Response (Laptop → Phone)
+
+```json
+{
+  "sentence": "Could you please give me some water?",
+  "signs": ["help", "water"],
+  "source": "ollama",
+  "model": "gemma2:2b"
+}
+```
+
+**Rules:**
+- `sentence` is the natural language sentence formed from the input signs.
+- `signs` echoes back the input signs for verification.
+- `source` is one of: `"ollama"` (LLM formed the sentence) or `"fallback"` (raw concatenation, LLM unavailable).
+- `model` is the Ollama model name used. Omitted when `source` is `"fallback"`.
+
+### 1.5 Ping (Health Check)
 
 **Request:** `GET /ping`
 **Response:**
@@ -77,7 +109,9 @@
   "server_time": "2026-09-11T16:00:00+05:30",
   "model_loaded": true,
   "dtw_ready": true,
-  "vocabulary_size": 15
+  "vocabulary_size": 15,
+  "ollama_ready": true,
+  "ollama_model": "gemma2:2b"
 }
 ```
 
@@ -132,8 +166,9 @@ These are **non-negotiable**. They override convenience, speed, and personal pre
 ┌──────────────────────▼──────────────────────────┐
 │ NAVIGATION LAYER                                │
 │ Flask/FastAPI server — thin routing only         │
-│ /ping  → health check                           │
-│ /recognize → dispatch to AI4Bharat or DTW       │
+│ /ping           → health check                  │
+│ /recognize      → dispatch to AI4Bharat or DTW  │
+│ /form-sentence  → dispatch to Ollama LLM        │
 │ Dispatches, doesn't reason.                     │
 └──────────────────────┬──────────────────────────┘
                        │
@@ -143,6 +178,7 @@ These are **non-negotiable**. They override convenience, speed, and personal pre
 │ • landmark_normalizer.py  (45-frame norm)       │
 │ • ai4bharat_inference.py  (model wrapper)       │
 │ • dtw_matcher.py          (template matching)   │
+│ • sentence_former.py      (Ollama LLM → NLU)   │
 │ • tts_trigger.js          (on-device speech)    │
 │ • asr_trigger.js          (on-device transcribe)│
 │ Each independently testable with fixtures.      │
@@ -164,6 +200,7 @@ gestura-prototype/
 │       ├── landmark_normalizer.py
 │       ├── ai4bharat_inference.py
 │       ├── dtw_matcher.py
+│       ├── sentence_former.py   ← Ollama LLM sentence formation
 │       └── test_tools.py
 ├── phone/
 │   ├── index.html           ← Full-screen mobile web app
@@ -193,6 +230,7 @@ gestura-prototype/
 | Server | Python (Flask or FastAPI) | AI4Bharat's code is Python; keeps inference in same runtime |
 | AI4Bharat model | Transformer on extracted landmarks | Pretrained on INCLUDE dataset (263 ISL word classes), MIT licensed |
 | DTW fallback | `dtaidistance` or `fastdtw` Python library | Classic DTW on hand landmark sequences, no training needed |
+| Sentence formation | Ollama + Gemma 2B (or similar small LLM) | Local REST API, zero cloud, converts sign keywords → natural sentences |
 | TTS (phone) | Web Speech API `speechSynthesis` | On-device, no cloud call, built into all modern mobile browsers |
 | ASR (phone) | Web Speech API `SpeechRecognition` | On-device where available; for Android native later, use `createOnDeviceSpeechRecognizer()` |
 | Phone ↔ Laptop | HTTP over local WiFi | Both devices on same network, server binds to LAN IP |

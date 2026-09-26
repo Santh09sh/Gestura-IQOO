@@ -115,6 +115,52 @@
 
 ---
 
+## Phase 3E: NLU — Sentence Formation Pipeline
+
+**Goal:** Convert accumulated sign keywords into natural, spoken sentences using a local LLM.
+
+### Server Side
+
+- [ ] `server/tools/sentence_former.py` — Ollama LLM wrapper
+  - [ ] Connect to Ollama REST API (`http://localhost:11434/api/generate`)
+  - [ ] Prompt engineering: system prompt constrains output to natural ISL-to-English conversion
+  - [ ] Accept array of sign labels → return formed sentence
+  - [ ] Graceful fallback: if Ollama is unreachable, return signs joined with spaces
+  - [ ] Response includes `source` field: `"ollama"` or `"fallback"`
+  - [ ] Unit tests with mock Ollama responses
+
+- [ ] `server/app.py` — new endpoint
+  - [ ] `POST /form-sentence` — accepts `{signs: [...], context: "conversation"}`
+  - [ ] Returns `{sentence: "...", signs: [...], source: "ollama", model: "gemma2:2b"}`
+  - [ ] Update `/ping` to include `ollama_ready` and `ollama_model` fields
+
+### Phone Side
+
+- [ ] Sign buffer in `main.js`
+  - [ ] Accumulate recognized signs into an ordered array (max 10)
+  - [ ] Auto-trigger sentence formation after 3s timeout (no new sign detected)
+  - [ ] Manual "Speak" button to trigger sentence formation early
+  - [ ] Clear buffer after sentence is spoken
+
+- [ ] `network.js` — new API call
+  - [ ] `formSentence(signs)` → POST to `/api/form-sentence`
+
+- [ ] UI updates
+  - [ ] Show accumulated sign chips/badges in caption area
+  - [ ] Display the formed sentence prominently before TTS speaks it
+  - [ ] "Speak" button (manual trigger) + visual countdown for auto-trigger
+  - [ ] Only speak the final formed sentence (not individual signs)
+
+### LLM Setup (One-Time)
+
+- [ ] Install [Ollama](https://ollama.ai) on the laptop
+- [ ] Pull model: `ollama pull gemma2:2b` (~1.6GB download)
+- [ ] Verify: `ollama run gemma2:2b "Form a sentence from: help, water"`
+
+**Gate:** Signs accumulate → sentence formed via local LLM → spoken aloud. Fallback works when Ollama is offline.
+
+---
+
 ## Phase 4: Stylize
 
 **Goal:** Make the phone UI clear, high-contrast, and functional — NOT flashy.
@@ -162,6 +208,8 @@
 - [ ] Speech-to-sign avatar or video generation
 - [ ] Cloud deployment
 - [ ] INCLUDE model fine-tuning on hand-only landmarks
+- [ ] Multi-language sentence formation (Hindi, Telugu, etc.)
+- [ ] Conversation memory across sentence formation calls
 
 ---
 
